@@ -1,8 +1,10 @@
 ﻿using MobileMap;
 using MobileMapToDXF.Commands;
+using netDxf;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -44,8 +46,8 @@ namespace MobileMapToDXF
         public string Destination { get => Destination_; set { SetProperty(ref Destination_, value); } }
         private string Destination_ = string.Empty;
 
-        public int Progress { get => Progress_; set { SetProperty(ref Progress_, value); } }
-        private int Progress_ = 0;
+        public double Progress { get => Progress_; set { SetProperty(ref Progress_, value); } }
+        private double Progress_ = 0;
 
         public ICommand SelectMapCommand { get; }
         public ICommand SelectDXFCommand { get; }
@@ -86,18 +88,75 @@ namespace MobileMapToDXF
             Destination = file.FileName;
         }
 
-        private void CreateCallback(object parameter)
+        private async void CreateCallback(object parameter)
         {
-            if (string.IsNullOrEmpty(Source)) return;
-            if (string.IsNullOrEmpty(Destination)) return;
+            if (string.IsNullOrEmpty(Source))
+            {
+                Status = "Map file path is empty.";
+                return;
+            }
+                
+            if (string.IsNullOrEmpty(Destination))
+            {
+                Status = "Destination file path is empty.";
+                return;
+            }
+
+            if(!Path.GetExtension(Destination).Equals(".dxf", StringComparison.CurrentCultureIgnoreCase))
+            {
+                Status = "The destination file name must have a '.dxf' extention.";
+                return;
+            }
+
 
             MapFile = new MapFile(Source, true);
-            MapFile.LoadMapFromContent(true);
 
-            MapUtils.SaveDXF(MapFile.Map, Destination);
+            if (!MapFile.LoadMapFromContent(true))
+            {
+                Status = "Could not parse the map contents.";
+                return;
+            }
 
 
+            if (await Task.Run(() => Convert()))
+                Status = "Complete...";
+            else
+                Status = "DXF could not be saved.";
         }
 
+        public bool Convert()
+        {
+            // create a new document, by default it will create an AutoCad2000 DXF version
+            DxfDocument doc = new DxfDocument();
+
+            double total = MapFile.Map.Geometry.Lines.Count + MapFile.Map.Geometry.Points.Count;
+            double count = 0;
+
+            Status = $"Processing {total} entities. {(total > 50000 ? "This will take a long time." : "This will not take long.")}";
+
+            foreach (MapGeometry.Line l in MapFile.Map.Geometry.Lines)
+            {
+                // an entity
+                netDxf.Entities.Line entity = new netDxf.Entities.Line(new Vector2(l.Start.X, l.Start.Y), new Vector2(l.End.X, l.End.Y));
+                // add your entities here
+                doc.AddEntity(entity);
+
+                count++;
+                Progress = count / total * 100;
+            }
+
+            foreach (System.Drawing.Point p in MapFile.Map.Geometry.Points)
+            {
+                netDxf.Entities.Point entity = new netDxf.Entities.Point(new Vector2(p.X, p.Y));
+                // add your entities here
+                doc.AddEntity(entity);
+
+                count++;
+                Progress = count / total * 100;
+            }
+
+            // save to file
+            return doc.Save(Destination);
+        }
     }
 }

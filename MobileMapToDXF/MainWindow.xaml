@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:MobileMapToDXF"
         d:DataContext="{d:DesignInstance Type=local:MainWindowViewModel}"
         mc:Ignorable="d"
-        Title="MainWindow" SizeToContent="WidthAndHeight" ResizeMode="NoResize">
+        Title="Mobile Map to DXF" SizeToContent="WidthAndHeight" ResizeMode="NoResize">
     <Window.DataContext>
         <local:MainWindowViewModel/>
     </Window.DataContext>
@@ -21,5 +21,6 @@
         </StackPanel>
         <Button Content="Create" Command="{Binding CreateCommand}" Width="120" HorizontalAlignment="Center"/>
         <Label Content="{Binding Status}"/>
+        <ProgressBar Maximum="100" Minimum="0" Value="{Binding Progress}" Height="20"/>
     </StackPanel>
 </Window>

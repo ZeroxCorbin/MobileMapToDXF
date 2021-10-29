@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="netDXF" Version="2.2.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\Git_Managed\MobileMap\MobileMap\MobileMap.csproj" />
   </ItemGroup>
 
